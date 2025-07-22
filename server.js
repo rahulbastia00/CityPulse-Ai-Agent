@@ -3,6 +3,7 @@ const express = require("express");
 
 const fetchEvents = require("./src/services/fetchEvents");
 const geocodeLocation = require("./src/services/geocode");
+const embedText = require("./src/services/embedText");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -39,6 +40,43 @@ app.get("/events-with-coordinates", async (req, res) => {
         console.error("Error in /events-with-coordinates:", error);
         res.status(500).json({ error: "Failed to geocode events" });
     }
+});
+
+// ✅ NEW: Add the /embed route that you're trying to access
+app.get("/embed", async (req, res) => {
+    const text = req.query.text;
+    
+    if (!text) {
+        return res.status(400).json({ 
+            error: "Missing required 'text' parameter" 
+        });
+    }
+    
+    try {
+        const embedding = await embedText(text);
+        res.status(200).json({ 
+            text: text, 
+            embedding: embedding,
+            dimension: embedding.length 
+        });
+    } catch (error) {
+        console.error("Error in /embed:", error);
+        res.status(500).json({ 
+            error: "Failed to generate embedding",
+            details: error.message 
+        });
+    }
+});
+
+// Test Route: Generate embedding for a sample text
+app.get("/test-embedding", async (req, res) => {
+  const sampleText = req.query.text || "Breaking: Accident in Patia involving multiple casualties.";
+  try {
+    const embedding = await embedText(sampleText);
+    res.json({ text: sampleText, vector: embedding });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to embed text" });
+  }
 });
 
 app.listen(PORT, () => {
